@@ -1,0 +1,4 @@
+/test/
+/number/
+/sample/
+/data/
