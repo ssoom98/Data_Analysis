@@ -1,0 +1,2 @@
+Kim,01012345678,seoul@example.com
+Lee,01098765432,lee@example.com
