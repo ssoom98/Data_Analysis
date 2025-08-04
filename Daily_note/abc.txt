@@ -1,0 +1,74 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+# 📌 1. 브라우저 설정
+options = Options()
+#options.add_argument("--headless")  # 창 띄우지 않음 (개발 중이라면 주석 처리해도 됨)
+#options.add_argument("--window-size=1920,1080")
+driver = webdriver.Chrome(options=options)
+
+# 📌 2. 사이트 접속
+driver.get("https://tmacs.kotsa.or.kr/web/TG/TG300/TG3100/Tg2127.jsp?mid=S1810")
+WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "sido")))
+
+# 📌 3. '서울' 선택
+Select(driver.find_element(By.ID, "sido")).select_by_visible_text("서울")
+time.sleep(2)
+
+# 📌 4. '강남구' 선택
+Select(driver.find_element(By.ID, "jijace")).select_by_visible_text("강남구")
+time.sleep(2)
+
+# 📌 5. 조회 버튼 클릭
+driver.find_element(By.XPATH, "//a[contains(@class, 'btn_primary')]").click()
+time.sleep(3)  # 데이터 로딩 시간
+
+# 📌 6. 결과 그리드 셀 div 모두 가져오기
+divs = WebDriverWait(driver, 10).until(
+    EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#rMateH5__Content69 > div"))
+)
+
+print(f"✅ {len(divs)}개의 셀 div 감지됨")
+
+# 📌 7. 하나씩 셀 클릭 → 팝업 열기 → 3초 후 닫기
+main_window = driver.current_window_handle
+
+for idx, div in enumerate(divs):
+    try:
+        print(f"\n▶ {idx+1}/{len(divs)}번째 셀 클릭 시도 중...")
+
+        # 스크롤해서 보이게 하고 클릭
+        driver.execute_script("arguments[0].scrollIntoView(true);", div)
+        time.sleep(0.3)
+        driver.execute_script("arguments[0].click();", div)
+
+        # 새 창 열릴 때까지 기다림
+        WebDriverWait(driver, 10).until(lambda d: len(d.window_handles) > 1)
+
+        # 새 창 핸들로 전환
+        for handle in driver.window_handles:
+            if handle != main_window:
+                popup_window = handle
+                break
+        driver.switch_to.window(popup_window)
+
+        # 팝업 내용 대기 및 일부 출력
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        print(f"✅ 팝업 열림: {driver.title}")
+        time.sleep(3)  # 📌 3초 유지
+
+        # 팝업 닫기
+        driver.close()
+        driver.switch_to.window(main_window)
+
+    except Exception as e:
+        print(f"❌ {idx+1}번 셀에서 오류 발생: {e}")
+        driver.switch_to.window(main_window)
+        continue
+
+print("\n🎉 모든 셀 클릭 및 팝업 처리 완료!")
+driver.quit()
